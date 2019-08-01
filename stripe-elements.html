@@ -157,7 +157,7 @@
    * @customElement
    * @extends Polymer.Element
    * @appliesMixin Polymer.TemplateStamp
-   * @fires 'stripe-token'
+   * @fires 'stripe-success'
    * @fires 'stripe-error'
    */
   class StripeElements extends Polymer.TemplateStamp(Polymer.Element) {
@@ -181,7 +181,18 @@
          */
         mountElementId: {
           type: String,
+          reflectToAttribute: true,
+          notify: true,
           readOnly: true,
+        },
+
+        /**
+         * Cleint Secret
+         * @type {String}
+         * @protected
+         */
+        clientSecret: {
+          type: String,
         },
 
         /**
@@ -335,6 +346,12 @@
           value: false,
         },
 
+        stripeSuccess: {
+          type: Boolean,
+          notify: true,
+          readOnly: true,
+      },
+
         /** Stripe token. */
         token: {
           type: Object,
@@ -408,17 +425,26 @@
      * @param  {Object} response.token Stripe token
      * @protected
      */
-    handleResponse({error, token}) {
+    handleResponse(response) {
       const bubbles = true;
       const composed = true;
-      if (error) {
-        this._setError(error);
-        this.dispatchEvent(new ErrorEvent('stripe-error', {error, bubbles, composed}));
+      const success = false;
+
+      if (response.status == 'succeeded') {
+          const success = true;
+          this._setStripeSuccess(success);
+          this.dispatchEvent(new CustomEvent('stripe-success', {success, bubbles, composed}));
+
+          // Submit the form
+          this.action && this.$.form.submit();
       } else {
-        this._setToken(token);
-        this.dispatchEvent(new CustomEvent('stripe-token', {token, bubbles, composed}));
-        // Submit the form
-        this.action && this.$.form.submit();
+          this._setError(response.message);
+          let error = this.error;
+          this._setStripeSuccess(success);
+
+          this.dispatchEvent(new ErrorEvent('stripe-error', {error, bubbles, composed}));
+
+          this.dispatchEvent(new CustomEvent('stripe-success', {success, bubbles, composed}));
       }
     }
 
@@ -591,9 +617,30 @@
      * @param  {Event} event Submit event.
      */
     submit(event) {
+      const bubbles = true;
+      const composed = true;
+        /*
       this.stripe.createToken(this.card, this.cardData)
         .then(this.handleResponse.bind(this))
         .catch(this.handleError.bind(this));
+        */
+       let self = this;
+      this.stripe.handleCardPayment(
+         this.clientSecret, this.card, {
+           payment_method_data: {
+              //billing_details: {name: cardholderName.value}
+           }
+         }
+       ).then(function(result) {
+         if (typeof result.paymentIntent != 'undefined') {
+           // Display error.message in your UI.
+           self.handleResponse(result.paymentIntent);
+         } else {
+             self._setError({message: 'Une erreur est survenue lors de la validation de la transaction'});
+             let error = self.error;
+             self.dispatchEvent(new ErrorEvent('stripe-error', {error, bubbles, composed}));
+         }
+       });
     }
 
     /**
