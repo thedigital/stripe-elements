@@ -443,8 +443,6 @@
           this._setStripeSuccess(success);
 
           this.dispatchEvent(new ErrorEvent('stripe-error', {error, bubbles, composed}));
-
-          this.dispatchEvent(new CustomEvent('stripe-success', {success, bubbles, composed}));
       }
     }
 
@@ -636,7 +634,7 @@
            // Display error.message in your UI.
            self.handleResponse(result.paymentIntent);
          } else {
-             self._setError({message: 'Une erreur est survenue lors de la validation de la transaction'});
+             self._setError({message: result.error.message});
              let error = self.error;
              self.dispatchEvent(new ErrorEvent('stripe-error', {error, bubbles, composed}));
          }
