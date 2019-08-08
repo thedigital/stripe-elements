@@ -606,7 +606,7 @@
       this.stripe.handleCardPayment(
          this.clientSecret, this.card, {
            payment_method_data: {
-              //billing_details: {name: cardholderName.value}
+               payment_method: this.paymentMethod
            }
          }
        ).then(function(result) {
