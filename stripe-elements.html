@@ -31,8 +31,6 @@
             <!-- Stripe will inject form here -->
           </div>
 
-          <input type="hidden" name="stripeToken" value="[[token]]">
-
         </form>
       </div>
     </template>
@@ -61,7 +59,6 @@
    *   <paper-input label="Stripe Publishable Key" value="{{key}}"></paper-input>
    *   <stripe-elements
    *       publishable-key="[[key]]"
-   *       token="{{token}}"
    *   ></stripe-elements>
    *   <show-json hide-copy-button json="[[token]]"></show-json>
    * ```
@@ -157,8 +154,7 @@
    * @customElement
    * @extends Polymer.Element
    * @appliesMixin Polymer.TemplateStamp
-   * @fires 'stripe-success'
-   * @fires 'stripe-error'
+   * @fires 'stripe-authorization'
    */
   class StripeElements extends Polymer.TemplateStamp(Polymer.Element) {
     static get is() {return 'stripe-elements';}
@@ -196,7 +192,7 @@
         },
 
         /**
-         * Card billing info to be passed to createToken() (optional)
+         * Card billing info to be passed to handleCardPayment() (optional)
          * More information here https://stripe.com/docs/stripe-js/reference#stripe-create-token
          * @type {Object}
          */
@@ -346,19 +342,6 @@
           value: false,
         },
 
-        stripeSuccess: {
-          type: Boolean,
-          notify: true,
-          readOnly: true,
-      },
-
-        /** Stripe token. */
-        token: {
-          type: Object,
-          notify: true,
-          readOnly: true,
-        },
-
         /** Prefilled values for form. Example {postalCode: '90210'} */
         value: {
           type: Object,
@@ -421,27 +404,29 @@
 
     /**
      * Sets the token or error from the response.
-     * @param  {Object} response.error Stripe error
-     * @param  {Object} response.token Stripe token
+     * @param  {Object} responseStripe
      * @protected
      */
     handleResponse(response) {
       const bubbles = true;
       const composed = true;
-      const success = false;
+      const success = true;
+      let status = {
+          'success': success,
+          'message': 'Paiement autorisé. Paiement en cours...'
+      };
 
       if (response.status == 'succeeded') {
-          const success = true;
-          this._setStripeSuccess(success);
-          this.dispatchEvent(new CustomEvent('stripe-success', {success, bubbles, composed}));
+          this.dispatchEvent(new CustomEvent('stripe-authorization', {
+              bubbles: bubbles, composed: composed, detail: status
+            })
+          );
 
           // Submit the form
           this.action && this.$.form.submit();
       } else {
-          this._setError(response.message);
-          let error = this.error;
-          this._setStripeSuccess(success);
-
+          const error = response.message;
+          this._setError(error);
           this.dispatchEvent(new ErrorEvent('stripe-error', {error, bubbles, composed}));
       }
     }
@@ -491,7 +476,6 @@
      * @param  {String|Object} event.value     Value of the form. Only non-sensitive information e.g. postalCode is present.
      */
     onChange({empty, complete, brand, error, value} = {}) {
-
       this._setIsEmpty(empty);
       this._setIsComplete(complete);
       this._setBrand(brand);
@@ -611,18 +595,14 @@
     }
 
     /**
-     * Submit credit card information to generate a token
+     * Submit credit card information
      * @param  {Event} event Submit event.
      */
     submit(event) {
       const bubbles = true;
       const composed = true;
-        /*
-      this.stripe.createToken(this.card, this.cardData)
-        .then(this.handleResponse.bind(this))
-        .catch(this.handleError.bind(this));
-        */
-       let self = this;
+      let self = this;
+
       this.stripe.handleCardPayment(
          this.clientSecret, this.card, {
            payment_method_data: {
@@ -634,8 +614,8 @@
            // Display error.message in your UI.
            self.handleResponse(result.paymentIntent);
          } else {
-             self._setError({message: result.error.message});
-             let error = self.error;
+             const error = result.error.message;
+             self._setError({message: error});
              self.dispatchEvent(new ErrorEvent('stripe-error', {error, bubbles, composed}));
          }
        });
