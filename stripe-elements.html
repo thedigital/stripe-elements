@@ -603,12 +603,16 @@
       const composed = true;
       let self = this;
 
+      let data = {};
+      if (this.paymentMethod) {
+          let data = {
+              payment_method_data: {
+                  payment_method: this.paymentMethod
+              }
+          };
+      }
       this.stripe.handleCardPayment(
-         this.clientSecret, this.card, {
-           payment_method_data: {
-               payment_method: this.paymentMethod
-           }
-         }
+         this.clientSecret, this.card, data
        ).then(function(result) {
          if (typeof result.paymentIntent != 'undefined') {
            // Display error.message in your UI.
@@ -635,14 +639,13 @@
             payment_method: this.paymentMethod
           }
        ).then(function(result) {
-           console.log('confirm', result)
            if (result.error) {
-            // Show error in payment form
-            const error = result.error.message;
-            self._setError({message: error});
-            self.dispatchEvent(new ErrorEvent('stripe-error', {error, bubbles, composed}));
+                // Show error in payment form
+                const error = result.error.message;
+                self._setError({message: error});
+                self.dispatchEvent(new ErrorEvent('stripe-error', {error, bubbles, composed}));
           } else {
-            self.handleResponse(result.paymentIntent);
+                self.handleResponse(result.paymentIntent);
           }
        });
     }
