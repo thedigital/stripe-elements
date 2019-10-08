@@ -638,18 +638,34 @@
               }
           };
       }
-      this.stripe.handleCardPayment(
-         this.clientSecret, this.card, data
-       ).then(function(result) {
-         if (typeof result.paymentIntent != 'undefined') {
-           // Display error.message in your UI.
-           self.handleResponse(result.paymentIntent);
-         } else {
-             const error = result.error.message;
-             self._setError({message: error});
-             self.dispatchEvent(new ErrorEvent('stripe-error', {error, bubbles, composed}));
-         }
-       });
+
+      if (this.clientSecret.match(/^pi_/    )) {
+          this.stripe.handleCardPayment(
+            this.clientSecret, this.card, data
+          ).then(function(result) {
+              if (typeof result.paymentIntent != 'undefined') {
+                  // Display error.message in your UI.
+                  self.handleResponse(result.paymentIntent);
+              } else {
+                  const error = result.error.message;
+                  self._setError({message: error});
+                  self.dispatchEvent(new ErrorEvent('stripe-error', {error, bubbles, composed}));
+              }
+          });
+      } else if (this.clientSecret.match(/^seti_/)) {
+          this.stripe.handleCardSetup(
+            this.clientSecret, this.card, {}
+          ).then(function(result) {
+              if (typeof result.setupIntent != 'undefined') {
+                  // Display error.message in your UI.
+                  self.handleResponse(result.setupIntent);
+              } else {
+                  const error = result.error.message;
+                  self._setError({message: error});
+                  self.dispatchEvent(new ErrorEvent('stripe-error', {error, bubbles, composed}));
+              }
+          });
+      }
     }
 
     /**
