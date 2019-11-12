@@ -349,6 +349,24 @@
           value: false,
         },
 
+        /** True when the stripe element is ready to receive focus. */
+        stripeFocus: {
+          type: Boolean,
+          readOnly: true,
+          notify: true,
+          reflectToAttribute: true,
+          value: false,
+        },
+
+        /** True when the stripe element is ready to receive focus. */
+        stripeBlur: {
+          type: Boolean,
+          readOnly: true,
+          notify: true,
+          reflectToAttribute: true,
+          value: false,
+        },
+
         /** Prefilled values for form. Example {postalCode: '90210'} */
         value: {
           type: Object,
@@ -491,6 +509,8 @@
         card.mount(mount);
         card.addEventListener('ready', this.onReady.bind(this));
         card.addEventListener('change', this.onChange.bind(this));
+        card.addEventListener('focus', this.onFocus.bind(this));
+        card.addEventListener('blur', this.onBlur.bind(this));
       }
     }
 
@@ -525,6 +545,24 @@
      */
     onReady(event) {
       this._setStripeReady(true);
+    }
+
+    /**
+     * Sets the stripeReady property when the stripe element is ready to receive focus.
+     * @param  {Event} event
+     */
+    onFocus(event) {
+      this._setStripeFocus(true);
+      this._setStripeBlur(false);
+    }
+
+    /**
+     * Sets the stripeReady property when the stripe element is ready to receive focus.
+     * @param  {Event} event
+     */
+    onBlur(event) {
+      this._setStripeFocus(false);
+      this._setStripeBlur(true);
     }
 
     /**
