@@ -658,6 +658,15 @@
         throw new Error(error);
       }
     }
+    
+    /** Resets the Stripe card. */
+    focus() {
+      try {
+        this.card && this.card.focus();
+      } catch (error) {
+        throw new Error(error);
+      }
+    }
 
     /**
      * Submit credit card information
