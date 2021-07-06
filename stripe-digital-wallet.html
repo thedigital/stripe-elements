@@ -622,6 +622,7 @@
 
               paymentRequest.on('paymentmethod', function(ev) {
                   self.set('stripePaying', true);
+                  console.log('stripePaying TRUE !', self.stripePaying)
 
               // Confirm the PaymentIntent without handling potential next actions (yet).
               self.stripe.confirmCardPayment(
@@ -647,8 +648,8 @@
                     self.stripe.confirmCardPayment(self.clientSecret).then(function(result) {
                       if (result.error) {
                         // The payment failed -- ask your customer for a new payment method.
-                        // console.log('payment failed', result)
-                        ev.complete('fail');
+                        console.log('payment failed', result)
+                        self._setError({message: result.message});
                       } else {
                         // The payment has succeeded.
                         self.handleResponse(confirmResult.paymentIntent);
@@ -800,7 +801,7 @@
     validate() {
       const isValid = this.isComplete && !this.isEmpty && !this.hasError;
       if (!isValid) {
-        this._setError({message: "Digital <Wallet></Wallet> information is invalid."});
+        this._setError({message: "Digital Wallet information is invalid."});
       }
       return isValid;
     }
