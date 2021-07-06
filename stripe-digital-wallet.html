@@ -621,7 +621,7 @@
               // wallet.addEventListener('blur', self.onBlur.bind(this));
 
               paymentRequest.on('paymentmethod', function(ev) {
-                  this.set('stripePaying', true);
+                  self.set('stripePaying', true);
 
               // Confirm the PaymentIntent without handling potential next actions (yet).
               self.stripe.confirmCardPayment(
