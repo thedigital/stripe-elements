@@ -207,6 +207,10 @@
           type: Object,
         },
 
+        orderData: {
+          type: Object,
+        },
+
         /**
          * Permitted style names.
          * @type {Array}
@@ -236,6 +240,15 @@
          * @protected
          */
         card: {
+          type: Object,
+          readOnly: true,
+        },
+
+        /**
+         * Reference to the card.
+         * @protected
+         */
+        wallet: {
           type: Object,
           readOnly: true,
         },
@@ -328,7 +341,6 @@
         /** Stripe Publishable Key. EG. pk_test_XXXXXXXXXXXXXXXXXXXXXXXX */
         publishableKey: {
           type: String,
-          observer: 'publishableKeyChanged',
         },
 
         /**
@@ -383,6 +395,7 @@
 
     static get observers() { return [
         'onVisible(error, visible)',
+        'publishableKeyChanged(orderData, publishableKey)'
     ]}
 
     connectedCallback() {
@@ -505,12 +518,118 @@
         const style = this.getStripeElementsStyles();
         const init = {hidePostalCode, hideIcon, iconStyle, style, value};
         const card = this.elements.create('card', init);
+
         this._setCard(card);
         card.mount(mount);
         card.addEventListener('ready', this.onReady.bind(this));
         card.addEventListener('change', this.onChange.bind(this));
         card.addEventListener('focus', this.onFocus.bind(this));
         card.addEventListener('blur', this.onBlur.bind(this));
+      }
+    }
+
+    /**
+     * Creates and mounts Stripe Elements card.
+     * @protected
+     */
+    mountWallet() {
+      const mount = (window.ShadyDOM ? this.root : document).getElementById(this.mountElementId);
+      if (mount) {
+        const {hidePostalCode, hideIcon, iconStyle, value} = this;
+        const style = this.getStripeElementsStyles();
+        const init = {hidePostalCode, hideIcon, iconStyle, style, value};
+
+        var paymentRequest = this.stripe.paymentRequest({
+          country: 'FR',
+          currency: this.orderData.currency,
+          total: {
+            label: this.orderData.label,
+            amount: this.orderData.amount,
+          },
+          requestPayerName: true,
+          requestPayerEmail: true,
+        });
+
+        // new PaymentRequest([{supportedMethods: ['basic-card']}], {total: {
+        //   label: this.orderData.label,
+        //   amount: {
+        //       value: this.orderData.amount / 100,
+        //       currency: this.orderData.currency
+        // }}}).show()
+
+
+        const wallet = this.elements.create('paymentRequestButton', {
+          paymentRequest: paymentRequest,
+          style: {
+            paymentRequestButton: {
+              type: 'buy',
+              // One of 'default', 'book', 'buy', or 'donate'
+              // Defaults to 'default'
+
+              theme: 'dark',
+              // One of 'dark', 'light', or 'light-outline'
+              // Defaults to 'dark'
+
+              height: '64px'
+              // Defaults to '40px'. The width is always '100%'.
+            },
+          },
+        });
+
+        // Check the availability of the Payment Request API first.
+        let self = this;
+        paymentRequest.canMakePayment().then(function(result) {
+          if (result) {
+              self._setWallet(wallet);
+              wallet.mount(mount);
+              // wallet.addEventListener('ready', self.onReady.bind(this));
+              // wallet.addEventListener('change', self.onChange.bind(this));
+              // wallet.addEventListener('focus', self.onFocus.bind(this));
+              // wallet.addEventListener('blur', self.onBlur.bind(this));
+
+              paymentRequest.on('paymentmethod', function(ev) {
+              // Confirm the PaymentIntent without handling potential next actions (yet).
+              self.stripe.confirmCardPayment(
+                self.clientSecret,
+                {payment_method: ev.paymentMethod.id},
+                {handleActions: false}
+              ).then(function(confirmResult) {
+                if (confirmResult.error) {
+                  // Report to the browser that the payment failed, prompting it to
+                  // re-show the payment interface, or show an error message and close
+                  // the payment interface.
+                  ev.complete('fail');
+                } else {
+                  // Report to the browser that the confirmation was successful, prompting
+                  // it to close the browser payment method collection interface.
+                  ev.complete('success');
+                  // Check if the PaymentIntent requires any actions and if so let Stripe.js
+                  // handle the flow. If using an API version older than "2019-02-11"
+                  // instead check for: `paymentIntent.status === "requires_source_action"`.
+                  if (confirmResult.paymentIntent.status === "requires_action") {
+                    // Let Stripe.js handle the rest of the payment flow.
+                    self.stripe.confirmCardPayment(self.clientSecret).then(function(result) {
+                      if (result.error) {
+                        // The payment failed -- ask your customer for a new payment method.
+                        console.log('payment failed', result)
+                      } else {
+                        // The payment has succeeded.
+                        self.handleResponse(confirmResult.paymentIntent);
+                      }
+                    });
+                  } else {
+                    // The payment has succeeded.
+                    self.handleResponse(confirmResult.paymentIntent);
+                  }
+                }
+              });
+            });
+          } else {
+              // si paiement digital wallet impossible
+              // on paye via CB
+              self.mountCard();
+          }
+        });
       }
     }
 
@@ -608,12 +727,16 @@
      * @param  {String} publishableKey Stripe publishable key
      * @protected
      */
-    publishableKeyChanged(publishableKey) {
-      this.unmountCard();
-      if (publishableKey) {
-        this.initStripe(this.publishableKey);
-        this.mountCard();
-      }
+    publishableKeyChanged(orderData, publishableKey) {
+        if (this.orderData && this.publishableKey) {
+            // this.unmountCard();
+            this.unmountWallet();
+            if (publishableKey) {
+                this.initStripe(this.publishableKey);
+                // this.mountCard();
+                this.mountWallet();
+            }
+        }
     }
 
     /**
@@ -658,7 +781,7 @@
         throw new Error(error);
       }
     }
-    
+
     /** Resets the Stripe card. */
     focus() {
       try {
@@ -752,6 +875,22 @@
         console.error(error);
       } finally {
         this._setCard(null);
+        this._setStripeReady(false);
+      }
+    }
+
+    /**
+     * Unmounts and nullifies the card.
+     * @protected
+     */
+    unmountWallet() {
+      try {
+        this.wallet && this.wallet.unmount && this.wallet.unmount();
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(error);
+      } finally {
+        this._setWallet(null);
         this._setStripeReady(false);
       }
     }
