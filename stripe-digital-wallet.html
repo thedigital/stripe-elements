@@ -220,6 +220,10 @@
           type: Object,
         },
 
+        cart: {
+            type: Array,
+        },
+
         /**
          * Permitted style names.
          * @type {Array}
@@ -569,9 +573,18 @@
         const init = {hidePostalCode, hideIcon, iconStyle, style, value};
         this.set('stripePaying', false);
 
+        var items = [];
+        this.cart.forEach(function(item) {
+            items.push({
+                amount: item.item.quantity * item.item.price,
+                label: item.item.quantity + ' ' + item.item.name,
+            });
+        });
+
         var paymentRequest = this.stripe.paymentRequest({
           country: 'FR',
           currency: this.orderData.currency,
+          displayItems: items,
           total: {
             label: this.orderData.label,
             amount: this.orderData.amount,
