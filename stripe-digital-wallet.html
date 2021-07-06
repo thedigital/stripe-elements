@@ -568,6 +568,8 @@
         const style = this.getStripeElementsStyles();
         const init = {hidePostalCode, hideIcon, iconStyle, style, value};
 
+        this.set('stripePaying', false);
+
         var paymentRequest = this.stripe.paymentRequest({
           country: 'FR',
           currency: this.orderData.currency,
@@ -635,7 +637,7 @@
                   // it to close the browser payment method collection interface.
                   ev.complete('success');
 
-                  this.stripePaying = true;
+                  this.set('stripePaying', true);
 
                   // Check if the PaymentIntent requires any actions and if so let Stripe.js
                   // handle the flow. If using an API version older than "2019-02-11"
@@ -818,7 +820,7 @@
         this.card && this.card.clear && this.card.clear();
         this.wallet && this.wallet.clear && this.wallet.clear();
         this._setError(undefined);
-        this.stripePaying = false;
+        this.set('stripePaying', false);
       } catch (error) {
         throw new Error(error);
       }
