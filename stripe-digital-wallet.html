@@ -642,7 +642,7 @@
                   // Check if the PaymentIntent requires any actions and if so let Stripe.js
                   // handle the flow. If using an API version older than "2019-02-11"
                   // instead check for: `paymentIntent.status === "requires_source_action"`.
-                  if (confirmResult.paymentIntent.status === "requires_action") {
+                  if (['requires_source_action', 'requires_action'].includes(confirmResult.paymentIntent.status)) {
                     // Let Stripe.js handle the rest of the payment flow.
                     self.stripe.confirmCardPayment(self.clientSecret).then(function(result) {
                       if (result.error) {
