@@ -773,7 +773,6 @@
             if (publishableKey) {
                 this.initStripe(this.publishableKey);
                 this._setStripePaying(false);
-                console.log('publishableKeyChanged', this.stripePaying)
                 if (this.mode == 'card') {
                     this.mountCard();
                 } else if (this.mode == 'wallet') {
