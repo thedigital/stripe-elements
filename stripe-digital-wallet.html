@@ -568,7 +568,6 @@
         const style = this.getStripeElementsStyles();
         const init = {hidePostalCode, hideIcon, iconStyle, style, value};
         this.set('stripePaying', false);
-        console.log('stripePaying FALSE !', this.stripePaying)
 
         var paymentRequest = this.stripe.paymentRequest({
           country: 'FR',
@@ -613,8 +612,8 @@
         let self = this;
         paymentRequest.canMakePayment().then(function(result) {
           if (result) {
-              wallet.mount(mount);
               self._setCanMakePayment(true);
+              wallet.mount(mount);
               // wallet.addEventListener('ready', self.onReady.bind(this));
               // wallet.addEventListener('change', self.onChange.bind(this));
               // wallet.addEventListener('focus', self.onFocus.bind(this));
@@ -628,7 +627,7 @@
                 {payment_method: ev.paymentMethod.id},
                 {handleActions: false}
               ).then(function(confirmResult) {
-                  self.stripePaying = true;
+                  self._setStripePaying(true);
                   console.log('stripePaying TRUE !', self.stripePaying)
                 if (confirmResult.error) {
                   // Report to the browser that the payment failed, prompting it to
@@ -650,7 +649,7 @@
                         // The payment failed -- ask your customer for a new payment method.
                         console.log('payment failed', result)
                         self._setError({message: result.error.message});
-                        self.set('stripePaying', false);
+                        self._setStripePaying(false);
                         console.log('stripePaying FALSE 2 !', self.stripePaying)
                       } else {
                         // The payment has succeeded.
@@ -824,6 +823,7 @@
         this.card && this.card.clear && this.card.clear();
         this.wallet && this.wallet.clear && this.wallet.clear();
         this._setError(undefined);
+        console.log('RESET')
         this.set('stripePaying', false);
       } catch (error) {
         throw new Error(error);
