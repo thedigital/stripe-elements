@@ -568,8 +568,6 @@
         const style = this.getStripeElementsStyles();
         const init = {hidePostalCode, hideIcon, iconStyle, style, value};
 
-        this.set('stripePaying', false);
-
         var paymentRequest = this.stripe.paymentRequest({
           country: 'FR',
           currency: this.orderData.currency,
@@ -613,6 +611,7 @@
         let self = this;
         paymentRequest.canMakePayment().then(function(result) {
           if (result) {
+              self.set('stripePaying', false);
               wallet.mount(mount);
               self._setCanMakePayment(true);
               // wallet.addEventListener('ready', self.onReady.bind(this));
@@ -649,7 +648,7 @@
                       if (result.error) {
                         // The payment failed -- ask your customer for a new payment method.
                         console.log('payment failed', result)
-                        self._setError({message: result.message});
+                        self._setError({message: result.error.message});
                       } else {
                         // The payment has succeeded.
                         self.handleResponse(confirmResult.paymentIntent);
