@@ -5,7 +5,7 @@
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
 <link rel="import" href="./stripe-elements-custom-styles.html">
 
-<dom-module id="stripe-elements">
+<dom-module id="stripe-digital-wallet">
   <template>
     <style>
       :host {
@@ -30,8 +30,8 @@
 
     </style>
 
-    <template id="stripeCardTemplate">
-      <div slot="stripe-card">
+    <template id="stripeDigitalWalletTemplate">
+      <div slot="stripe-digital-wallet">
         <form id="form" action="[[action]]" method="post">
           <div id="[[mountElementId]]" aria-label="Credit or Debit Card">
             <!-- Stripe will inject form here -->
@@ -41,7 +41,7 @@
       </div>
     </template>
 
-    <slot name="stripe-card"></slot>
+    <slot name="stripe-digital-wallet"></slot>
 
     <div id="error">[[error.message]]</div>
 
@@ -162,8 +162,8 @@
    * @appliesMixin Polymer.TemplateStamp
    * @fires 'stripe-authorization'
    */
-  class StripeElements extends Polymer.TemplateStamp(Polymer.Element) {
-    static get is() {return 'stripe-elements';}
+  class StripeDigitalWallet extends Polymer.TemplateStamp(Polymer.Element) {
+    static get is() {return 'stripe-digital-wallet';}
     static get properties() {
       return {
 
@@ -251,6 +251,26 @@
         card: {
           type: Object,
           readOnly: true,
+        },
+
+        /**
+         * Reference to the card.
+         * @protected
+         */
+        wallet: {
+          type: Object,
+          readOnly: true,
+        },
+
+        /**
+         * Reference to the card.
+         * @protected
+         */
+        canMakePayment: {
+          type: Boolean,
+          readOnly: true,
+          notify: true,
+          reflectToAttribute: true,
         },
 
 
@@ -518,13 +538,126 @@
         const style = this.getStripeElementsStyles();
         const init = {hidePostalCode, hideIcon, iconStyle, style, value};
         const card = this.elements.create('card', init);
-
+console.log('mountCard', mount)
         this._setCard(card);
         card.mount(mount);
         card.addEventListener('ready', this.onReady.bind(this));
         card.addEventListener('change', this.onChange.bind(this));
         card.addEventListener('focus', this.onFocus.bind(this));
         card.addEventListener('blur', this.onBlur.bind(this));
+      }
+    }
+
+    /**
+     * Creates and mounts Stripe Elements card.
+     * @protected
+     */
+    mountWallet() {
+      const mount = (window.ShadyDOM ? this.root : document).getElementById(this.mountElementId);
+      if (mount) {
+        const {hidePostalCode, hideIcon, iconStyle, value} = this;
+        const style = this.getStripeElementsStyles();
+        const init = {hidePostalCode, hideIcon, iconStyle, style, value};
+console.log('mountWallet', mount)
+        var paymentRequest = this.stripe.paymentRequest({
+          country: 'FR',
+          currency: this.orderData.currency,
+          total: {
+            label: this.orderData.label,
+            amount: this.orderData.amount,
+          },
+          requestPayerName: true,
+          requestPayerEmail: true,
+        });
+
+        // new PaymentRequest([{supportedMethods: ['basic-card']}], {total: {
+        //   label: this.orderData.label,
+        //   amount: {
+        //       value: this.orderData.amount / 100,
+        //       currency: this.orderData.currency
+        // }}}).show()
+
+
+        const wallet = this.elements.create('paymentRequestButton', {
+          paymentRequest: paymentRequest,
+          style: {
+            paymentRequestButton: {
+              type: 'buy',
+              // One of 'default', 'book', 'buy', or 'donate'
+              // Defaults to 'default'
+
+              theme: 'dark',
+              // One of 'dark', 'light', or 'light-outline'
+              // Defaults to 'dark'
+
+              height: '64px'
+              // Defaults to '40px'. The width is always '100%'.
+            },
+          },
+        });
+
+        this._setWallet(wallet);
+
+        // Check the availability of the Payment Request API first.
+        let self = this;
+        paymentRequest.canMakePayment().then(function(result) {
+          if (result) {
+              wallet.mount(mount);
+              self._setCanMakePayment(true);
+              // wallet.addEventListener('ready', self.onReady.bind(this));
+              // wallet.addEventListener('change', self.onChange.bind(this));
+              // wallet.addEventListener('focus', self.onFocus.bind(this));
+              // wallet.addEventListener('blur', self.onBlur.bind(this));
+
+              paymentRequest.on('paymentmethod', function(ev) {
+              // Confirm the PaymentIntent without handling potential next actions (yet).
+              self.stripe.confirmCardPayment(
+                self.clientSecret,
+                {payment_method: ev.paymentMethod.id},
+                {handleActions: false}
+              ).then(function(confirmResult) {
+                if (confirmResult.error) {
+                  // Report to the browser that the payment failed, prompting it to
+                  // re-show the payment interface, or show an error message and close
+                  // the payment interface.
+                  ev.complete('fail');
+                } else {
+                  // Report to the browser that the confirmation was successful, prompting
+                  // it to close the browser payment method collection interface.
+                  ev.complete('success');
+                  // Check if the PaymentIntent requires any actions and if so let Stripe.js
+                  // handle the flow. If using an API version older than "2019-02-11"
+                  // instead check for: `paymentIntent.status === "requires_source_action"`.
+                  if (confirmResult.paymentIntent.status === "requires_action") {
+                    // Let Stripe.js handle the rest of the payment flow.
+                    self.stripe.confirmCardPayment(self.clientSecret).then(function(result) {
+                      if (result.error) {
+                        // The payment failed -- ask your customer for a new payment method.
+                        console.log('payment failed', result)
+                      } else {
+                        // The payment has succeeded.
+                        self.handleResponse(confirmResult.paymentIntent);
+                      }
+                    });
+                  } else {
+                    // The payment has succeeded.
+                    self.handleResponse(confirmResult.paymentIntent);
+                  }
+                }
+              });
+            });
+          } else {
+              self._setCanMakePayment(false);
+              // si paiement digital wallet impossible
+              // on paye via CB
+              if (self.defaultWithCard) {
+                  console.log('fallback: on declenche mountCard');
+                  self.mountCard();
+              } else {
+                  console.log('pas de wallet dispo et pas de fallback')
+              }
+          }
+        });
       }
     }
 
@@ -592,7 +725,7 @@
                 mount.id = this.mountElementId;
           this.__shadyDomMount = mount;
         }
-        const slot = this.root.querySelector('[name="stripe-card"]');
+        const slot = this.root.querySelector('[name="stripe-digital-wallet"]');
         slot.appendChild(this.__shadyDomMount);
       } else {
         // trace each shadow boundary between us and the document
@@ -604,14 +737,14 @@
 
         // append template to `app-shell` (as light DOM)
         // stamp stripe template
-        this.__stripeTemplate = this._stampTemplate(this.$.stripeCardTemplate);
+        this.__stripeTemplate = this._stampTemplate(this.$.stripeDigitalWalletTemplate);
         shadowHosts.pop().appendChild(this.__stripeTemplate);
 
         // leave breadcrumbs
         shadowHosts.forEach((host) => {
           const slot = document.createElement('slot');
-                slot.setAttribute('slot', 'stripe-card');
-                slot.setAttribute('name', 'stripe-card');
+                slot.setAttribute('slot', 'stripe-digital-wallet');
+                slot.setAttribute('name', 'stripe-digital-wallet');
           host.appendChild(slot);
         });
       }
@@ -624,10 +757,17 @@
      */
     publishableKeyChanged(orderData, publishableKey) {
         this.unmountCard();
+        this.unmountWallet();
         if (this.orderData && this.orderData.amount && this.publishableKey) {
+            console.log(this.orderData)
             if (publishableKey) {
                 this.initStripe(this.publishableKey);
-                this.mountCard();
+                console.log(this.mode)
+                if (this.mode == 'card') {
+                    this.mountCard();
+                } else if (this.mode == 'wallet') {
+                    this.mountWallet();
+                }
             }
         }
     }
@@ -638,7 +778,7 @@
      * @return {String} mount element id
      */
     generateRandomMountElementId() {
-      return 'stripe-elements-mount-point-'+([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+      return 'stripe-digital-wallet-mount-point-'+([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
         (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
       );
     }
@@ -650,7 +790,7 @@
     validate() {
       const isValid = this.isComplete && !this.isEmpty && !this.hasError;
       if (!isValid) {
-        this._setError({message: "Credit card information is invalid."});
+        this._setError({message: "Digital <Wallet></Wallet> information is invalid."});
       }
       return isValid;
     }
@@ -669,6 +809,7 @@
     reset() {
       try {
         this.card && this.card.clear && this.card.clear();
+        this.wallet && this.wallet.clear && this.wallet.clear();
         this._setError(undefined);
       } catch (error) {
         throw new Error(error);
@@ -771,9 +912,25 @@
         this._setStripeReady(false);
       }
     }
+
+    /**
+     * Unmounts and nullifies the card.
+     * @protected
+     */
+    unmountWallet() {
+      try {
+        this.wallet && this.wallet.unmount && this.wallet.unmount();
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(error);
+      } finally {
+        this._setWallet(null);
+        this._setStripeReady(false);
+      }
+    }
   }
 
-  customElements.define(StripeElements.is, StripeElements);
+  customElements.define(StripeDigitalWallet.is, StripeDigitalWallet);
 
   </script>
 </dom-module>
