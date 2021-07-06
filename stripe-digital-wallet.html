@@ -621,8 +621,6 @@
               // wallet.addEventListener('blur', self.onBlur.bind(this));
 
               paymentRequest.on('paymentmethod', function(ev) {
-                  self.set('stripePaying', true);
-                  console.log('stripePaying TRUE !', self.stripePaying)
 
               // Confirm the PaymentIntent without handling potential next actions (yet).
               self.stripe.confirmCardPayment(
@@ -630,6 +628,8 @@
                 {payment_method: ev.paymentMethod.id},
                 {handleActions: false}
               ).then(function(confirmResult) {
+                  self.set('stripePaying', true);
+                  console.log('stripePaying TRUE !', self.stripePaying)
                 if (confirmResult.error) {
                   // Report to the browser that the payment failed, prompting it to
                   // re-show the payment interface, or show an error message and close
