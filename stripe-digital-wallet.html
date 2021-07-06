@@ -628,7 +628,6 @@
                 {handleActions: false}
               ).then(function(confirmResult) {
                   self._setStripePaying(true);
-                  console.log('stripePaying TRUE !', self.stripePaying)
                 if (confirmResult.error) {
                   // Report to the browser that the payment failed, prompting it to
                   // re-show the payment interface, or show an error message and close
@@ -647,10 +646,8 @@
                     self.stripe.confirmCardPayment(self.clientSecret).then(function(result) {
                       if (result.error) {
                         // The payment failed -- ask your customer for a new payment method.
-                        console.log('payment failed', result)
                         self._setError({message: result.error.message});
                         self._setStripePaying(false);
-                        console.log('stripePaying FALSE 2 !', self.stripePaying)
                       } else {
                         // The payment has succeeded.
                         self.handleResponse(confirmResult.paymentIntent);
@@ -775,6 +772,8 @@
         if (this.orderData && this.orderData.amount && this.publishableKey) {
             if (publishableKey) {
                 this.initStripe(this.publishableKey);
+                this._setStripePaying(false);
+                console.log('publishableKeyChanged', this.stripePaying)
                 if (this.mode == 'card') {
                     this.mountCard();
                 } else if (this.mode == 'wallet') {
@@ -823,7 +822,6 @@
         this.card && this.card.clear && this.card.clear();
         this.wallet && this.wallet.clear && this.wallet.clear();
         this._setError(undefined);
-        console.log('RESET')
         this.set('stripePaying', false);
       } catch (error) {
         throw new Error(error);
