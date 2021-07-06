@@ -621,6 +621,8 @@
               // wallet.addEventListener('blur', self.onBlur.bind(this));
 
               paymentRequest.on('paymentmethod', function(ev) {
+                  this.set('stripePaying', true);
+
               // Confirm the PaymentIntent without handling potential next actions (yet).
               self.stripe.confirmCardPayment(
                 self.clientSecret,
@@ -636,8 +638,6 @@
                   // Report to the browser that the confirmation was successful, prompting
                   // it to close the browser payment method collection interface.
                   ev.complete('success');
-
-                  this.set('stripePaying', true);
 
                   // Check if the PaymentIntent requires any actions and if so let Stripe.js
                   // handle the flow. If using an API version older than "2019-02-11"
