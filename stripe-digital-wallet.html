@@ -612,6 +612,7 @@
         paymentRequest.canMakePayment().then(function(result) {
           if (result) {
               self.set('stripePaying', false);
+              console.log('stripePaying FALSE !', self.stripePaying)
               wallet.mount(mount);
               self._setCanMakePayment(true);
               // wallet.addEventListener('ready', self.onReady.bind(this));
