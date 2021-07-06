@@ -538,7 +538,7 @@
         const style = this.getStripeElementsStyles();
         const init = {hidePostalCode, hideIcon, iconStyle, style, value};
         const card = this.elements.create('card', init);
-console.log('mountCard', mount)
+
         this._setCard(card);
         card.mount(mount);
         card.addEventListener('ready', this.onReady.bind(this));
@@ -558,7 +558,7 @@ console.log('mountCard', mount)
         const {hidePostalCode, hideIcon, iconStyle, value} = this;
         const style = this.getStripeElementsStyles();
         const init = {hidePostalCode, hideIcon, iconStyle, style, value};
-console.log('mountWallet', mount)
+
         var paymentRequest = this.stripe.paymentRequest({
           country: 'FR',
           currency: this.orderData.currency,
@@ -651,10 +651,7 @@ console.log('mountWallet', mount)
               // si paiement digital wallet impossible
               // on paye via CB
               if (self.defaultWithCard) {
-                  console.log('fallback: on declenche mountCard');
                   self.mountCard();
-              } else {
-                  console.log('pas de wallet dispo et pas de fallback')
               }
           }
         });
@@ -759,10 +756,8 @@ console.log('mountWallet', mount)
         this.unmountCard();
         this.unmountWallet();
         if (this.orderData && this.orderData.amount && this.publishableKey) {
-            console.log(this.orderData)
             if (publishableKey) {
                 this.initStripe(this.publishableKey);
-                console.log(this.mode)
                 if (this.mode == 'card') {
                     this.mountCard();
                 } else if (this.mode == 'wallet') {
