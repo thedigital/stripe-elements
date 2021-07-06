@@ -628,7 +628,7 @@
                 {payment_method: ev.paymentMethod.id},
                 {handleActions: false}
               ).then(function(confirmResult) {
-                  self.set('stripePaying', true);
+                  self.stripePaying = true;
                   console.log('stripePaying TRUE !', self.stripePaying)
                 if (confirmResult.error) {
                   // Report to the browser that the payment failed, prompting it to
