@@ -647,7 +647,8 @@
                     self.stripe.confirmCardPayment(self.clientSecret).then(function(result) {
                       if (result.error) {
                         // The payment failed -- ask your customer for a new payment method.
-                        console.log('payment failed', result)
+                        // console.log('payment failed', result)
+                        ev.complete('fail');
                       } else {
                         // The payment has succeeded.
                         self.handleResponse(confirmResult.paymentIntent);
