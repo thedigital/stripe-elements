@@ -567,8 +567,8 @@
         const {hidePostalCode, hideIcon, iconStyle, value} = this;
         const style = this.getStripeElementsStyles();
         const init = {hidePostalCode, hideIcon, iconStyle, style, value};
-        self.set('stripePaying', false);
-        console.log('stripePaying FALSE !', self.stripePaying)
+        this.set('stripePaying', false);
+        console.log('stripePaying FALSE !', this.stripePaying)
 
         var paymentRequest = this.stripe.paymentRequest({
           country: 'FR',
@@ -650,6 +650,8 @@
                         // The payment failed -- ask your customer for a new payment method.
                         console.log('payment failed', result)
                         self._setError({message: result.error.message});
+                        self.set('stripePaying', false);
+                        console.log('stripePaying FALSE 2 !', self.stripePaying)
                       } else {
                         // The payment has succeeded.
                         self.handleResponse(confirmResult.paymentIntent);
