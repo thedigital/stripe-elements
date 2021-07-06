@@ -399,6 +399,15 @@
           value: false,
         },
 
+        /** True when the stripe element is ready to receive focus. */
+        stripePaying: {
+          type: Boolean,
+          readOnly: true,
+          notify: true,
+          reflectToAttribute: true,
+          value: false,
+        },
+
         /** Prefilled values for form. Example {postalCode: '90210'} */
         value: {
           type: Object,
@@ -625,6 +634,9 @@
                   // Report to the browser that the confirmation was successful, prompting
                   // it to close the browser payment method collection interface.
                   ev.complete('success');
+
+                  this.stripePaying = true;
+
                   // Check if the PaymentIntent requires any actions and if so let Stripe.js
                   // handle the flow. If using an API version older than "2019-02-11"
                   // instead check for: `paymentIntent.status === "requires_source_action"`.
@@ -806,6 +818,7 @@
         this.card && this.card.clear && this.card.clear();
         this.wallet && this.wallet.clear && this.wallet.clear();
         this._setError(undefined);
+        this.stripePaying = false;
       } catch (error) {
         throw new Error(error);
       }
