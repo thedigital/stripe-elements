@@ -576,7 +576,7 @@
         var items = [];
         this.cart.forEach(function(item) {
             items.push({
-                amount: item.item.quantity * item.item.price * 100,
+                amount: Math.round(item.item.quantity * item.item.price * 100),
                 label: item.item.quantity + ' ' + item.item.name,
             });
         });
@@ -587,7 +587,7 @@
           displayItems: items,
           total: {
             label: this.orderData.label,
-            amount: this.orderData.amount,
+            amount: Math.round(this.orderData.amount),
           },
           requestPayerName: true,
           requestPayerEmail: true,
