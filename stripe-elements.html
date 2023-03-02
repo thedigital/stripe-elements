@@ -21,13 +21,14 @@
         display: flex;
       }
 
+      #error {
+          padding: 8px;
+          text-align: center;
+      }
 
-
-        #error {
-            padding: 8px;
-            text-align: center;
-        }
-
+      [hidden] {
+          display: none;
+      }
     </style>
 
     <template id="stripeCardTemplate">
@@ -43,13 +44,14 @@
 
     <slot name="stripe-card"></slot>
 
-    <div id="error">[[error.message]]</div>
+    <div id="error" hidden$="[[hideError]]">[[error.message]]</div>
 
     <paper-toast id="toast"
         text="[[error.message]]"
         duration="Infinity"
         opened="{{toastOpened}}"
-        no-overlap
+        no-overlap 
+        hidden$="[[hideError]]"
         vertical-align="bottom">
       <paper-button toggles active="{{toastOpened}}">OK</paper-button>
     </paper-toast>
@@ -328,6 +330,11 @@
          * Useful when you gather shipping info elsewhere.
          */
         hidePostalCode: {
+          type: Boolean,
+          value: false,
+        },
+
+        hideError: {
           type: Boolean,
           value: false,
         },
